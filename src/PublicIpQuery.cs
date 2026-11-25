@@ -15,8 +15,8 @@ using System.Windows.Forms;
 [assembly: System.Reflection.AssemblyCompany("Jon.Shen")]
 [assembly: System.Reflection.AssemblyCopyright("Copyright \u00A9 2026 Jon.Shen (Jon.Shen@Foxmail.com). Non-commercial use only; attribution required.")]
 [assembly: System.Reflection.AssemblyDescription("查询本机公网 IP 地址")]
-[assembly: System.Reflection.AssemblyVersion("1.0.0.0")]
-[assembly: System.Reflection.AssemblyFileVersion("1.0.0.0")]
+[assembly: System.Reflection.AssemblyVersion("1.0.1.0")]
+[assembly: System.Reflection.AssemblyFileVersion("1.0.1.0")]
 
 namespace PublicIpQuery
 {
@@ -54,13 +54,15 @@ namespace PublicIpQuery
             }
         }
 
-        // 依次尝试多个来源：ipip.net（带归属地）→ ipify → ipinfo
+        // 优先 IPv4 来源，只有 IPv4 全部不可用时才回退到双栈 / IPv6 来源
         public static async Task<IpResult> QueryAsync()
         {
             Func<Task<IpResult>>[] providers =
             {
-                QueryIpip,
+                QueryPconline,
+                QueryIpv4Icanhazip,
                 QueryIpify,
+                QueryIpip,
                 QueryIpInfo
             };
 
@@ -82,6 +84,34 @@ namespace PublicIpQuery
             }
 
             throw new InvalidOperationException("所有查询来源均不可用");
+        }
+
+        // 太平洋电脑网接口：IPv4 + 中文归属地/运营商
+        private static async Task<IpResult> QueryPconline()
+        {
+            string text = await GetTextAsync(
+                "https://whois.pconline.com.cn/ipJson.jsp?json=true",
+                Encoding.GetEncoding("GB18030"));
+            Match ip = Regex.Match(text, "\"ip\"\\s*:\\s*\"([^\"]+)\"");
+            if (!ip.Success)
+            {
+                return null;
+            }
+
+            var result = new IpResult { Ip = ip.Groups[1].Value };
+            Match address = Regex.Match(text, "\"addr\"\\s*:\\s*\"([^\"]*)\"");
+            if (address.Success)
+            {
+                result.Location = address.Groups[1].Value.Trim();
+            }
+            return result;
+        }
+
+        // icanhazip 的 IPv4 专用地址，不受系统 IPv6 优先级影响
+        private static async Task<IpResult> QueryIpv4Icanhazip()
+        {
+            string text = await GetTextAsync("https://ipv4.icanhazip.com");
+            return new IpResult { Ip = text.Trim() };
         }
 
         private static async Task<IpResult> QueryIpip()
@@ -115,11 +145,11 @@ namespace PublicIpQuery
             return new IpResult { Ip = text.Trim() };
         }
 
-        private static async Task<string> GetTextAsync(string url)
+        private static async Task<string> GetTextAsync(string url, Encoding encoding = null)
         {
             using (var client = new TimeoutWebClient())
             {
-                client.Encoding = Encoding.UTF8;
+                client.Encoding = encoding ?? Encoding.UTF8;
                 client.Headers[HttpRequestHeader.UserAgent] = "PublicIpQuery/1.0";
                 return await client.DownloadStringTaskAsync(url);
             }
@@ -135,6 +165,7 @@ namespace PublicIpQuery
     internal sealed class MainForm : Form
     {
         private readonly Label _ipLabel;
+        private Font _ipFont;
         private readonly Label _locationLabel;
         private readonly Label _statusLabel;
         private readonly Button _copyButton;
@@ -163,6 +194,8 @@ namespace PublicIpQuery
                 Text = "—",
                 TextAlign = ContentAlignment.MiddleLeft
             };
+
+            _ipFont = _ipLabel.Font;
 
             _locationLabel = new Label
             {
@@ -234,7 +267,7 @@ namespace PublicIpQuery
 
             _busy = true;
             _currentIp = null;
-            _ipLabel.Text = "—";
+            SetIpText("—");
             _locationLabel.Text = "正在查询…";
             _statusLabel.Text = string.Empty;
             _copyButton.Enabled = false;
@@ -244,13 +277,13 @@ namespace PublicIpQuery
             {
                 IpResult result = await IpService.QueryAsync();
                 _currentIp = result.Ip;
-                _ipLabel.Text = _currentIp;
+                SetIpText(_currentIp);
                 _locationLabel.Text = string.IsNullOrEmpty(result.Location) ? "公网 IP" : result.Location;
                 _copyButton.Enabled = true;
             }
             catch (Exception)
             {
-                _ipLabel.Text = "查询失败";
+                SetIpText("查询失败");
                 _locationLabel.Text = "请检查网络连接后重试";
             }
             finally
@@ -258,6 +291,37 @@ namespace PublicIpQuery
                 _busy = false;
                 _refreshButton.Enabled = true;
             }
+        }
+
+        // 按标签宽度自动缩放字号，避免长 IPv6 地址被裁掉
+        private void SetIpText(string text)
+        {
+            float size = 22F;
+            Font chosen = null;
+            while (size >= 9F)
+            {
+                var candidate = new Font("Segoe UI", size, FontStyle.Bold);
+                if (TextRenderer.MeasureText(text, candidate).Width <= _ipLabel.Width - 8)
+                {
+                    chosen = candidate;
+                    break;
+                }
+                candidate.Dispose();
+                size -= 1F;
+            }
+
+            if (chosen == null)
+            {
+                chosen = new Font("Segoe UI", 9F, FontStyle.Bold);
+            }
+
+            _ipLabel.Font = chosen;
+            if (_ipFont != null && !ReferenceEquals(_ipFont, chosen))
+            {
+                _ipFont.Dispose();
+            }
+            _ipFont = chosen;
+            _ipLabel.Text = text;
         }
 
         private void OnCopyClick(object sender, EventArgs e)
