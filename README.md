@@ -42,3 +42,7 @@
 src/PublicIpQuery.cs    程序源码（查询服务 + 窗口）
 build.ps1               编译脚本
 ```
+
+## 许可
+
+本项目采用自定义非商业许可：自由复制、修改，禁止商业使用；整合或再分发时必须注明出处（Jon.Shen，Jon.Shen@Foxmail.com）。详见 [LICENSE](LICENSE)。

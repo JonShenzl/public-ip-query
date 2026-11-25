@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Jon.Shen (Jon.Shen@Foxmail.com)
+// 自由复制、修改；禁止商业使用；整合或再分发需注明出处。
+
 using System;
 using System.Drawing;
 using System.Net;
@@ -10,7 +13,7 @@ using System.Windows.Forms;
 [assembly: System.Reflection.AssemblyTitle("Public IP Query")]
 [assembly: System.Reflection.AssemblyProduct("Public IP Query")]
 [assembly: System.Reflection.AssemblyCompany("Jon.Shen")]
-[assembly: System.Reflection.AssemblyCopyright("Copyright \u00A9 2026 Jon.Shen")]
+[assembly: System.Reflection.AssemblyCopyright("Copyright \u00A9 2026 Jon.Shen (Jon.Shen@Foxmail.com). Non-commercial use only; attribution required.")]
 [assembly: System.Reflection.AssemblyDescription("查询本机公网 IP 地址")]
 [assembly: System.Reflection.AssemblyVersion("1.0.0.0")]
 [assembly: System.Reflection.AssemblyFileVersion("1.0.0.0")]
