@@ -2,6 +2,10 @@
 
 一个几十 KB 的 Windows 小工具：启动即查询本机公网 IP，显示归属地/运营商，一键复制。
 
+![界面预览（示例数据）](docs/preview.png)
+
+> 截图中 IP 与归属地为示例数据。
+
 ## 功能
 
 - 启动自动查询，显示公网 IP
@@ -46,3 +50,8 @@ build.ps1               编译脚本
 ## 许可
 
 本项目采用自定义非商业许可：自由复制、修改，禁止商业使用；整合或再分发时必须注明出处（Jon.Shen，Jon.Shen@Foxmail.com）。详见 [LICENSE](LICENSE)。
+
+## 相关工具
+
+- [世界时钟动态壁纸](https://github.com/JonShenzl/world-clock-wallpaper)
+- [图片格式转换器](https://github.com/JonShenzl/img-convert-to-jpg)
